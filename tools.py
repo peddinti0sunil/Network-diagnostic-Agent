@@ -3,6 +3,7 @@ import platform
 import socket
 import httpx
 from langchain_core.tools import tool
+import nmap
 
 @tool
 def ping_host(host: str) -> str:
@@ -123,8 +124,113 @@ def check_website(url: str) -> str:
         )
 
 
+@tool
+def nmap_scan(host: str) -> str:
+    """
+    Use this tool to perform a basic nmap scan on a given host.
+    Pass a domain name or IP address as input.
+    Returns the open ports and services detected by nmap.
+    """
+    nm = nmap.PortScanner()
+    try:
+        nm.scan(host, arguments='-sV -T4 --open')
+        if nm.all_hosts():
+            scanned_host = nm.all_hosts()[0]
+            open_ports = []
+            for proto in nm[scanned_host].all_protocols():
+                lport = nm[scanned_host][proto].keys()
+                for port in lport:
+                    state = nm[scanned_host][proto][port]['state']
+                    service = nm[scanned_host][proto][port]['name']
+                    product = nm[scanned_host][proto][port]['product']
+                    info = f"{service} {product}".strip()
+                    if state == 'open':
+                        open_ports.append(f"Port {port}/{proto} is open (Service: {service}) info: {info})")
+            if open_ports:
+                return f"Nmap scan results for {host}:\n" + "\n".join(open_ports)
+            else:
+                return f"Nmap scan results for {host}: No open ports found."
+        else:
+            return f"Nmap scan failed for {host}. Host not found."
+    except Exception as e:
+        return f"An error occurred during nmap scan for {host}. Error: {str(e)}"
+    
+ALLOWED_COMMANDS = [
+    "ping",
+    "nslookup",
+    "tracert",
+    "netstat",
+    "ipconfig"
+]
+# dangerous characters that chain commands
+DANGEROUS_CHARS = ["&", "|", ";", ">", "<", "`"]
 
-ALL_TOOLS = [ping_host, scan_port,dns_lookup,check_website]
+@tool
+def shell_tool(command: str) -> str:
+    """
+    Run a safe network diagnostic command in the terminal.
+    Only these commands are allowed: ping, nslookup, tracert, netstat, ipconfig.
+    Pass the full command as a string, for example:
+    'nslookup google.com'
+    """
+
+    try:
+
+        parts = command.strip().split()
+
+        if not parts:
+            return "No command provided."
+
+        base_command = parts[0].lower()
+
+        if base_command not in ALLOWED_COMMANDS:
+
+            return (
+                f" Command '{base_command}' is not allowed.\n"
+                f"Allowed commands: {', '.join(ALLOWED_COMMANDS)}"
+            )
+        if any(char in command for char in DANGEROUS_CHARS):
+            return (
+                f" Command contains dangerous characters that are not allowed.\n"
+                f"Please avoid using characters like: {' '.join(DANGEROUS_CHARS)}"
+            )
+
+        result = subprocess.run(
+            parts,
+            capture_output=True,
+            text=True,
+            timeout=15
+        )
+
+        if result.returncode == 0:
+
+            return (
+                f" Command executed successfully.\n\n"
+                f"COMMAND:\n{command}\n\n"
+                f"OUTPUT:\n{result.stdout}"
+            )
+
+        return (
+            f" Command executed with errors.\n\n"
+            f"COMMAND:\n{command}\n\n"
+            f"ERROR OUTPUT:\n{result.stderr}"
+        )
+
+    except subprocess.TimeoutExpired:
+
+        return (
+            f" Command timed out after 15 seconds:\n"
+            f"{command}"
+        )
+
+    except Exception as e:
+
+        return (
+            f" Failed to execute command.\n"
+            f"Error: {str(e)}"
+        )
+
+ALL_TOOLS = [ping_host, scan_port,dns_lookup,check_website, nmap_scan,shell_tool]
 
 if __name__ == "__main__":
     # Example usage
