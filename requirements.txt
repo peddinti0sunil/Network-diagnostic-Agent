@@ -1,0 +1,34 @@
+# NetScanAI — requirements.txt
+# Install everything with: pip install -r requirements.txt
+
+# ── LangChain ecosystem ──────────────────────────────────────────────
+langchain>=0.3.0            # main framework
+langchain-core>=0.3.0       # base classes: messages, tools, prompts
+langchain-groq>=0.2.0       # Groq LLM client (free Llama3 access)
+
+# ── LangGraph ────────────────────────────────────────────────────────
+langgraph>=0.2.0            # agent runtime: StateGraph, nodes, edges, memory
+
+# ── Structured output ────────────────────────────────────────────────
+pydantic>=2.0.0             # data validation for DiagnosticReport model
+
+# ── HTTP client ──────────────────────────────────────────────────────
+httpx>=0.27.0               # used in check_website tool
+
+# ── Network scanning ─────────────────────────────────────────────────
+python-nmap>=0.7.1          # python wrapper for nmap binary
+# NOTE: nmap binary must also be installed on your OS
+# Windows: https://nmap.org/download.html
+# Linux:   sudo apt install nmap
+# Mac:     brew install nmap
+
+# ── Environment variables ────────────────────────────────────────────
+python-dotenv>=1.0.0        # loads .env file into os.environ
+
+# ── Standard library (no install needed) ─────────────────────────────
+# socket       — port scanning, DNS lookup, hostname for thread_id
+# subprocess   — ping and shell commands
+# platform     — OS detection for ping flag (-n vs -c)
+# sqlite3      — SqliteSaver database connection
+# operator     — operator.add for LangGraph state message merging
+# os           — environment variable access

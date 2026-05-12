@@ -14,18 +14,23 @@ def ping_host(host: str) -> str:
     """
     
     flag = "-n" if platform.system().lower() == "windows" else "-c"
+    try:
+        result = subprocess.run(
+            ["ping", flag, "4", host],
+            capture_output=True,
+            text=True,
+            timeout=20  # timeout after 10 seconds to avoid hanging
+        )
+        
+        if result.returncode == 0:
+            return f"Host {host} is reachable. Response:\n{result.stdout}"
+        else:
+            return f"Host {host} is not reachable. or not responding. Error:\n{result.stdout}"
+    except subprocess.TimeoutExpired:
+        return f"Ping command timed out while trying to reach {host}."
+    except Exception as e:
+        return f"An error occurred while trying to ping {host}. Error: {str(e)}"
 
-    result = subprocess.run(
-        ["ping", flag, "4", host],
-        capture_output=True,
-        text=True,
-        timeout=10  # timeout after 10 seconds to avoid hanging
-    )
-    
-    if result.returncode == 0:
-        return f"Host {host} is reachable. Response:\n{result.stdout}"
-    else:
-        return f"Host {host} is not reachable. or not responding. Error:\n{result.stdout}"
 
 @tool
 def scan_port(host: str) -> str:
